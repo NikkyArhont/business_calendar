@@ -9,4 +9,12 @@ class AppColors {
   
   static const Color textPrimary = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
+
+  // Splash Screen
+  static const Color splashBackground = Color(0xFFF7F6F2);
+  static const Color splashTitle = Color(0xFF131415);
+  static const Color logoGradientStart = Color(0xFFFEAB31);
+  static const Color logoGradientEnd = Color(0xFFFA4E02);
+
+  static const Color buttonPrimary = Color(0xFFFA4E02);
 }

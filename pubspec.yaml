@@ -13,6 +13,8 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   cupertino_icons: ^1.0.5
+  shared_preferences: ^2.5.5
+  mask_text_input_formatter: ^2.9.0
 
 dev_dependencies:
   flutter_test:
@@ -22,3 +24,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/logo.png
+    - assets/onboard1.png
+    - assets/onboard2.png
+    - assets/onboard3.png
+    - assets/call.png
+    - assets/sms-tracking.png

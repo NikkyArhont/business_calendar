@@ -13,7 +13,7 @@ class BusinessCalendarApp extends StatelessWidget {
       title: 'Business Calendar',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      initialRoute: AppRoutes.onboarding,
+      initialRoute: AppRoutes.splash,
       onGenerateRoute: AppRouter.generateRoute,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
