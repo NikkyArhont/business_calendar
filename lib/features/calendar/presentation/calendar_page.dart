@@ -103,13 +103,12 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           
           // Правая кнопка (Переключатель вида)
-          Padding(
-            padding: const EdgeInsets.all(4),
-            child: Builder(
-              builder: (context) => IconButton(
-                onPressed: () => _showViewMenu(context),
-                icon: _buildViewToggleIcon(isMonthView: _isMonthView),
-              ),
+          Builder(
+            builder: (context) => IconButton(
+              onPressed: () => _showViewMenu(context),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: _buildViewToggleIcon(isMonthView: _isMonthView),
             ),
           ),
         ],

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:business_calendar/features/calendar/presentation/calendar_page.dart';
+import 'package:business_calendar/features/contacts/presentation/contact_list_page.dart';
+import 'package:business_calendar/features/analytics/presentation/analytics_page.dart';
+import 'package:business_calendar/features/profile/presentation/profile_page.dart';
 import 'package:business_calendar/shared/widgets/app_bottom_nav.dart';
 
 class MainNavigationScreen extends StatefulWidget {
@@ -14,9 +17,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   final List<Widget> _pages = [
     const CalendarPage(),
-    const Center(child: Text('Аналитика (В разработке)')),
-    const Center(child: Text('Контакты (В разработке)')),
-    const Center(child: Text('Профиль (В разработке)')),
+    const AnalyticsPage(),
+    const ContactListPage(),
+    const ProfilePage(),
   ];
 
   @override

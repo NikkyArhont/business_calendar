@@ -100,7 +100,10 @@ class LoginPage extends StatelessWidget {
                     backgroundColor: Colors.white,
                     textColor: Colors.black,
                     prefixIcon: const Icon(Icons.g_mobiledata, size: 30),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushNamedAndRemoveUntil(
+                          context, AppRoutes.calendar, (route) => false);
+                    },
                   ),
                   const SizedBox(height: 12),
                   
