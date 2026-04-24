@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/config/constants/app_strings.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
 import 'package:business_calendar/shared/widgets/app_primary_button.dart';
+import 'package:business_calendar/core/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -13,7 +15,9 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
+  final _authService = AuthService();
   bool _isNameFilled = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -25,13 +29,29 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
-  void _onNext() {
-    if (_isNameFilled) {
-      // TODO: Save user profile to storage/API
-      Navigator.pushNamedAndRemoveUntil(
-        context, 
-        AppRoutes.calendar, 
-        (route) => false, // Clear navigation stack
+  Future<void> _onNext() async {
+    if (_isLoading || !_isNameFilled) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.updateUserProfile(
+        name: _nameController.text.trim(),
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.calendar,
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error saving profile: $e');
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ошибка при сохранении профиля. Попробуйте еще раз.')),
       );
     }
   }
@@ -161,6 +181,7 @@ class _RegisterPageState extends State<RegisterPage> {
               // Кнопка Далее
               AppPrimaryButton(
                 text: 'Далее',
+                isLoading: _isLoading,
                 backgroundColor: _isNameFilled 
                     ? AppColors.buttonPrimary 
                     : const Color(0x1E767680),

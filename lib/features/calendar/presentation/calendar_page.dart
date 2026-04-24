@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:business_calendar/config/constants/app_colors.dart';
+import 'package:business_calendar/config/constants/app_routes.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -9,8 +10,26 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
+  DateTime _focusedDay = DateTime.now();
+  DateTime _selectedDay = DateTime.now();
   bool _isMonthView = true;
   bool _isMonthPickerVisible = false;
+
+  final List<String> _months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+
+  // Получение количества дней в месяце
+  int _daysInMonth(DateTime date) {
+    return DateTime(date.year, date.month + 1, 0).day;
+  }
+
+  // Получение дня недели первого дня месяца (0 - Пн, 6 - Вс)
+  int _firstDayOffset(DateTime date) {
+    final firstDay = DateTime(date.year, date.month, 1);
+    return firstDay.weekday - 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,38 +41,58 @@ class _CalendarPageState extends State<CalendarPage> {
             // Верхняя панель с месяцем
             _buildTopAppBar(),
             
-            // Выбор месяца/года (появляется по клику на заголовок)
+            // Выбор месяца/года
             if (_isMonthPickerVisible) _buildMonthYearPicker(),
             
             // Заголовок календаря (Сетка дней недели)
             _buildWeekdaysHeader(),
             
             Expanded(
-              child: Stack(
-                children: [
-                  // Сетка календаря
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Сетка календаря
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        height: _isMonthView ? 380 : 140, // Динамическая высота
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: _isMonthView ? _buildCalendarGrid() : _buildWeekView(),
                       ),
-                      child: _isMonthView ? _buildCalendarGrid() : _buildWeekPlaceholder(),
                     ),
-                  ),
-                  
-                  // Нижняя карточка дня
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 24,
-                    child: _buildDayDetailCard(),
-                  ),
-                ],
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Детали дня под календарем
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildDayDetailCard(),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, AppRoutes.addEvent);
+        },
+        backgroundColor: const Color(0xFFFA4E02),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
         ),
       ),
     );
@@ -68,7 +107,6 @@ class _CalendarPageState extends State<CalendarPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Месяц и Год (На кликабельной области)
           Expanded(
             child: GestureDetector(
               onTap: () {
@@ -81,9 +119,9 @@ class _CalendarPageState extends State<CalendarPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Row(
                   children: [
-                    const Text(
-                      'Февраль, 2026',
-                      style: TextStyle(
+                    Text(
+                      '${_months[_focusedDay.month - 1]}, ${_focusedDay.year}',
+                      style: const TextStyle(
                         color: Color(0xFF1C1B1F),
                         fontSize: 22,
                         fontFamily: 'Inter',
@@ -102,7 +140,6 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
           ),
           
-          // Правая кнопка (Переключатель вида)
           Builder(
             builder: (context) => IconButton(
               onPressed: () => _showViewMenu(context),
@@ -117,7 +154,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildMonthYearPicker() {
-    final months = ['Янв', 'Фев', 'Март', 'Апр', 'Май', 'Июнь', 'Июль', 'Авг', 'Сент', 'Окт', 'Ноя', 'Дек'];
+    final shortMonths = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
     return Container(
       width: double.infinity,
       height: 48,
@@ -128,14 +165,30 @@ class _CalendarPageState extends State<CalendarPage> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Год
-            _buildPickerChip('2026', isYear: true),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _focusedDay = DateTime(_focusedDay.year + 1, _focusedDay.month);
+                });
+              },
+              child: _buildPickerChip('${_focusedDay.year}', isYear: true),
+            ),
             const SizedBox(width: 8),
-            // Месяцы
-            ...months.map((month) => Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _buildPickerChip(month, isActive: month == 'Фев'),
-            )),
+            ...List.generate(12, (index) {
+              final monthName = shortMonths[index];
+              final isSelected = _focusedDay.month == index + 1;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _focusedDay = DateTime(_focusedDay.year, index + 1);
+                    });
+                  },
+                  child: _buildPickerChip(monthName, isActive: isSelected),
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -147,9 +200,10 @@ class _CalendarPageState extends State<CalendarPage> {
       height: 32,
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        color: isYear ? Colors.transparent : const Color(0x0FFA4E02),
+        color: isYear ? Colors.transparent : (isActive ? AppColors.logoGradientEnd.withOpacity(0.1) : const Color(0x0FFA4E02)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
+          side: isActive ? const BorderSide(color: AppColors.logoGradientEnd, width: 1) : BorderSide.none,
         ),
       ),
       child: Center(
@@ -159,10 +213,10 @@ class _CalendarPageState extends State<CalendarPage> {
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isYear ? Colors.black : const Color(0xFFFA4E02),
+              color: isYear ? Colors.black : (isActive ? AppColors.logoGradientEnd : const Color(0xFFFA4E02)),
               fontSize: 14,
               fontFamily: 'Inter',
-              fontWeight: isYear ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: (isYear || isActive) ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
         ),
@@ -252,7 +306,6 @@ class _CalendarPageState extends State<CalendarPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            // Иконка вида слева
             SizedBox(
               width: 24,
               height: 24,
@@ -267,12 +320,9 @@ class _CalendarPageState extends State<CalendarPage> {
                   fontSize: 17,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w400,
-                  height: 1.29,
-                  letterSpacing: -0.43,
                 ),
               ),
             ),
-            // Галка выбора справа (опционально, но помогает понять что выбрано)
             if (isActive)
               const Icon(Icons.check, size: 20, color: AppColors.logoGradientEnd),
           ],
@@ -335,12 +385,99 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       );
 
-  Widget _buildWeekPlaceholder() {
-    return const Center(
-      child: Text(
-        'Вид: Неделя\n(В разработке)',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey, fontSize: 16),
+  Widget _buildWeekView() {
+    // Вычисляем начало недели (Понедельник) для выбранного дня
+    final DateTime startOfWeek = _selectedDay.subtract(Duration(days: _selectedDay.weekday - 1));
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Заголовки дней недели (П, В, С...)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: ['П', 'В', 'С', 'Ч', 'П', 'С', 'В'].map((day) => Expanded(
+                child: Text(
+                  day,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0x993C3C43),
+                    fontSize: 10,
+                    fontFamily: 'Inter', // Используем Inter для единообразия
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )).toList(),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Числа недели
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (index) {
+              final day = startOfWeek.add(Duration(days: index));
+              final isSelected = day.day == _selectedDay.day && 
+                                day.month == _selectedDay.month && 
+                                day.year == _selectedDay.year;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDay = day;
+                      _focusedDay = day;
+                    });
+                  },
+                  child: Container(
+                    height: 60, // Сделал чуть компактнее чем в макете для баланса
+                    alignment: Alignment.topCenter,
+                    child: isSelected 
+                      ? Container(
+                          width: 32,
+                          height: 32,
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFA4E02),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${day.day}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '${day.day}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                ),
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
@@ -367,52 +504,74 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildCalendarGrid() {
+    final int daysInMonth = _daysInMonth(_focusedDay);
+    final int offset = _firstDayOffset(_focusedDay);
+    final DateTime prevMonth = DateTime(_focusedDay.year, _focusedDay.month - 1);
+    final int daysInPrevMonth = _daysInMonth(prevMonth);
+
     return GridView.builder(
       padding: const EdgeInsets.all(8),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisExtent: 90,
+        mainAxisExtent: 58,
       ),
-      itemCount: 35,
+      itemCount: 42,
       itemBuilder: (context, index) {
         int dayNumber;
-        bool isNextMonth = false;
         bool isCurrentMonth = true;
-        bool isSelected = false;
-
-        if (index < 6) {
-          dayNumber = 26 + index;
+        
+        if (index < offset) {
+          dayNumber = daysInPrevMonth - offset + index + 1;
           isCurrentMonth = false;
-        } else if (index == 6) {
-          dayNumber = 1;
+        } else if (index >= offset + daysInMonth) {
+          dayNumber = index - (offset + daysInMonth) + 1;
+          isCurrentMonth = false;
         } else {
-          dayNumber = index - 5;
-          if (dayNumber > 31) {
-            dayNumber -= 31;
-            isNextMonth = true;
-          }
+          dayNumber = index - offset + 1;
         }
 
-        if (dayNumber == 21 && !isNextMonth && isCurrentMonth) {
-          isSelected = true;
-        }
+        final bool isSelected = isCurrentMonth && 
+            _selectedDay.day == dayNumber && 
+            _selectedDay.month == _focusedDay.month &&
+            _selectedDay.year == _focusedDay.year;
 
-        return _buildCalendarCell(dayNumber, isCurrentMonth, isSelected, index);
+        final bool isToday = isCurrentMonth &&
+            DateTime.now().day == dayNumber &&
+            DateTime.now().month == _focusedDay.month &&
+            DateTime.now().year == _focusedDay.year;
+
+        return GestureDetector(
+          onTap: () {
+            if (isCurrentMonth) {
+              setState(() {
+                _selectedDay = DateTime(_focusedDay.year, _focusedDay.month, dayNumber);
+              });
+            }
+          },
+          child: _buildCalendarCell(dayNumber, isCurrentMonth, isSelected, isToday, index),
+        );
       },
     );
   }
 
-  Widget _buildCalendarCell(int day, bool isCurrentMonth, bool isSelected, int index) {
+  Widget _buildCalendarCell(int day, bool isCurrentMonth, bool isSelected, bool isToday, int index) {
     final Color textColor = isSelected 
         ? Colors.white 
-        : (isCurrentMonth ? Colors.black : const Color(0x2D3C3C43));
+        : (isCurrentMonth 
+            ? (isToday ? AppColors.logoGradientEnd : Colors.black) 
+            : const Color(0x2D3C3C43));
+
+    // Определяем, нужно ли рисовать нижнюю границу (не рисуем для последнего ряда, т.е. индексы 35-41)
+    final bool showBottomBorder = index < 35;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFFC7C7CC), width: 0.33),
-          right: BorderSide(color: Color(0xFFC7C7CC), width: 0.33),
+          bottom: showBottomBorder 
+              ? const BorderSide(color: Color(0xFFC7C7CC), width: 0.33) 
+              : BorderSide.none,
+          // Удалили right border (вертикальные линии)
         ),
       ),
       child: Stack(
@@ -438,88 +597,99 @@ class _CalendarPageState extends State<CalendarPage> {
                   )
                 : Text(
                     '$day',
-                    style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w400),
+                    style: TextStyle(
+                      color: textColor, 
+                      fontSize: 18, 
+                      fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
+                    ),
                   ),
             ),
           ),
-          
-          if (day == 10 && isCurrentMonth) ...[
-            Positioned(
-              left: 2,
-              right: 2,
-              top: 34,
-              child: _buildEventChip('Имя контакта', const Color(0xFF0088FF)),
-            ),
-            Positioned(
-              left: 2,
-              right: 2,
-              top: 58,
-              child: _buildEventChip('Название со...', const Color(0xFF6155F5)),
-            ),
-          ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildEventChip(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
-        border: Border.all(color: color, width: 0.5),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w500),
       ),
     );
   }
 
   Widget _buildDayDetailCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              '21, Суббота',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+    final weekDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+    final weekDayName = weekDays[_selectedDay.weekday - 1];
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: ShapeDecoration(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            shadows: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0x0FFA4E02),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              '0 событий',
-              style: TextStyle(
-                color: Color(0xFFFA4E02),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_selectedDay.day}, $weekDayName',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w600,
+                                height: 1.50,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16), // Замена spacing
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: ShapeDecoration(
+                          color: const Color(0x0FFA4E02),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          '0 событий',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFFFA4E02),
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w600, // Сделал 600 для четкости
+                            height: 1.33,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

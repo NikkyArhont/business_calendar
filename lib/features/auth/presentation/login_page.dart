@@ -95,24 +95,27 @@ class LoginPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   
-                  AppPrimaryButton(
-                    text: AppStrings.loginWithGoogle,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.black,
-                    prefixIcon: const Icon(Icons.g_mobiledata, size: 30),
-                    onPressed: () {
-                      Navigator.pushNamedAndRemoveUntil(
-                          context, AppRoutes.calendar, (route) => false);
-                    },
+                  Opacity(
+                    opacity: 0.6,
+                    child: AppPrimaryButton(
+                      text: AppStrings.loginWithGoogle,
+                      backgroundColor: Colors.white,
+                      textColor: Colors.black,
+                      prefixIcon: const Icon(Icons.g_mobiledata, size: 30),
+                      onPressed: () {}, // Не активно
+                    ),
                   ),
                   const SizedBox(height: 12),
                   
-                  AppPrimaryButton(
-                    text: AppStrings.loginWithApple,
-                    backgroundColor: Colors.white,
-                    textColor: Colors.black,
-                    prefixIcon: const Icon(Icons.apple, size: 24),
-                    onPressed: () {},
+                  Opacity(
+                    opacity: 0.6,
+                    child: AppPrimaryButton(
+                      text: AppStrings.loginWithApple,
+                      backgroundColor: Colors.white,
+                      textColor: Colors.black,
+                      prefixIcon: const Icon(Icons.apple, size: 24),
+                      onPressed: () {}, // Не активно
+                    ),
                   ),
                 ],
               ),

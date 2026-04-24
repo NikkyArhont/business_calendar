@@ -15,6 +15,8 @@ import '../features/subscription/presentation/subscription_page.dart';
 import '../features/auth/presentation/phone_auth_page.dart';
 import '../features/auth/presentation/otp_verification_page.dart';
 import 'package:business_calendar/features/home/presentation/main_navigation_screen.dart';
+import 'package:business_calendar/features/contacts/presentation/add_contact_page.dart';
+import 'package:business_calendar/features/calendar/presentation/add_event_page.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -28,9 +30,14 @@ class AppRouter {
       case AppRoutes.phoneAuth:
         return MaterialPageRoute(builder: (_) => const PhoneAuthPage());
       case AppRoutes.otpVerification:
-        final phoneNumber = settings.arguments as String? ?? '';
+        final args = settings.arguments as Map<String, dynamic>?;
+        final phoneNumber = args?['phoneNumber'] as String? ?? '';
+        final verificationId = args?['verificationId'] as String? ?? '';
         return MaterialPageRoute(
-          builder: (_) => OtpVerificationPage(phoneNumber: phoneNumber),
+          builder: (_) => OtpVerificationPage(
+            phoneNumber: phoneNumber,
+            verificationId: verificationId,
+          ),
         );
       case AppRoutes.login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
@@ -52,6 +59,16 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const AssistantsPage());
       case AppRoutes.subscription:
         return MaterialPageRoute(builder: (_) => const SubscriptionPage());
+      case AppRoutes.addContact:
+        return MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const AddContactPage(),
+        );
+      case AppRoutes.addEvent:
+        return MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const AddEventPage(),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

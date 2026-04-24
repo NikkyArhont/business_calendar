@@ -1,65 +1,87 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:business_calendar/config/constants/app_colors.dart';
+import 'package:business_calendar/config/constants/app_routes.dart';
 import 'package:business_calendar/shared/widgets/app_alert_dialog.dart';
+import 'package:business_calendar/core/services/auth_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _authService = AuthService();
+  final _firestore = FirebaseFirestore.instance;
+
+  @override
   Widget build(BuildContext context) {
+    final user = _authService.currentUser;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F6F2),
       body: SafeArea(
         child: Column(
           children: [
-            // Кастомный AppBar
             _buildAppBar(),
-            
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    // Карточка профиля
-                    _buildUserInfoCard(),
-                    
-                    const SizedBox(height: 24),
-                    // Список действий (Поделиться, Подписка)
-                    _buildActionsList(),
-                    
-                    const SizedBox(height: 12),
-                    // Кнопка Выйти
-                    _buildActionCard(
-                      title: 'Выйти из аккаунта',
-                      onTap: () => _showConfirmDialog(
-                        context,
-                        title: 'Вы уверены, что хотите выйти из аккаунта?',
-                        actionTitle: 'Выйти',
-                        onAction: () {
-                          // TODO: Логика выхода
-                        },
-                      ),
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: user != null 
+                    ? _firestore.collection('users').doc(user.uid).snapshots()
+                    : const Stream.empty(),
+                builder: (context, snapshot) {
+                  final userData = snapshot.data?.data() as Map<String, dynamic>?;
+                  final String displayName = userData?['name'] ?? user?.phoneNumber ?? 'Пользователь';
+                  final String? photoUrl = userData?['photoUrl'];
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        _buildUserInfoCard(displayName, photoUrl),
+                        const SizedBox(height: 24),
+                        _buildActionsList(),
+                        const SizedBox(height: 12),
+                        _buildActionCard(
+                          title: 'Выйти из аккаунта',
+                          onTap: () => _showConfirmDialog(
+                            context,
+                            title: 'Вы уверены, что хотите выйти из аккаунта?',
+                            actionTitle: 'Выйти',
+                            onAction: () async {
+                              await _authService.logout();
+                              if (mounted) {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context, 
+                                  AppRoutes.auth, 
+                                  (route) => false,
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionCard(
+                          title: 'Удалить аккаунт',
+                          isDestructive: true,
+                          onTap: () => _showConfirmDialog(
+                            context,
+                            title: 'Вы уверены, что хотите удалить аккаунт?',
+                            actionTitle: 'Удалить',
+                            isDestructive: true,
+                            onAction: () {
+                              // TODO: Логика удаления
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
-                    
-                    const SizedBox(height: 12),
-                    // Кнопка Удалить (Красная)
-                    _buildActionCard(
-                      title: 'Удалить аккаунт',
-                      isDestructive: true,
-                      onTap: () => _showConfirmDialog(
-                        context,
-                        title: 'Вы уверены, что хотите удалить аккаунт?',
-                        actionTitle: 'Удалить',
-                        isDestructive: true,
-                        onAction: () {
-                          // TODO: Логика удаления
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  );
+                }
               ),
             ),
           ],
@@ -106,7 +128,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildUserInfoCard() {
+  Widget _buildUserInfoCard(String name, String? photoUrl) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -116,7 +138,6 @@ class ProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Аватар плейсхолдер
           Container(
             width: 100,
             height: 100,
@@ -130,15 +151,19 @@ class ProfilePage extends StatelessWidget {
                   blurRadius: 10,
                 ),
               ],
+              image: photoUrl != null 
+                  ? DecorationImage(image: NetworkImage(photoUrl), fit: BoxFit.cover)
+                  : null,
             ),
-            child: const Icon(Icons.person, size: 60, color: Color(0xFF8E8E93)),
+            child: photoUrl == null 
+                ? const Icon(Icons.person, size: 60, color: Color(0xFF8E8E93))
+                : null,
           ),
           const SizedBox(height: 16),
-          // Имя
-          const Text(
-            'Иван Иванов',
+          Text(
+            name,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.black,
               fontSize: 20,
               fontFamily: 'Inter',
@@ -226,6 +251,7 @@ class ProfilePage extends StatelessWidget {
           children: [
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

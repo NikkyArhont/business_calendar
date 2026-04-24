@@ -4,6 +4,8 @@ import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/config/constants/app_strings.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
 import 'package:business_calendar/shared/widgets/app_primary_button.dart';
+import 'package:business_calendar/core/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PhoneAuthPage extends StatefulWidget {
   const PhoneAuthPage({super.key});
@@ -14,8 +16,10 @@ class PhoneAuthPage extends StatefulWidget {
 
 class _PhoneAuthPageState extends State<PhoneAuthPage> {
   final _phoneController = TextEditingController();
+  final _authService = AuthService();
   bool _isAgreed = false;
   bool _isPhoneComplete = false;
+  bool _isLoading = false;
 
   final _maskFormatter = MaskTextInputFormatter(
     mask: '+7 (###) ###-##-##',
@@ -29,13 +33,40 @@ class _PhoneAuthPageState extends State<PhoneAuthPage> {
     });
   }
 
-  void _onNext() {
-    if (mounted) {
-      final formattedNumber = _maskFormatter.getMaskedText();
-      Navigator.pushNamed(
-        context, 
-        AppRoutes.otpVerification, 
-        arguments: formattedNumber,
+  Future<void> _onNext() async {
+    if (_isLoading) return;
+
+    final phone = _maskFormatter.getUnmaskedText();
+    // Firebase требует формат +7...
+    final fullPhone = '+7$phone';
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.verifyPhoneNumber(
+        phoneNumber: fullPhone,
+        onCodeSent: (verificationId) {
+          setState(() => _isLoading = false);
+          Navigator.pushNamed(
+            context,
+            AppRoutes.otpVerification,
+            arguments: {
+              'phoneNumber': _maskFormatter.getMaskedText(),
+              'verificationId': verificationId,
+            },
+          );
+        },
+        onError: (e) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message ?? 'Ошибка при отправке SMS')),
+          );
+        },
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Произошла непредвиденная ошибка')),
       );
     }
   }
@@ -189,6 +220,7 @@ class _PhoneAuthPageState extends State<PhoneAuthPage> {
               // Кнопка Далее
               AppPrimaryButton(
                 text: 'Далее',
+                isLoading: _isLoading,
                 backgroundColor: (_isAgreed && _isPhoneComplete)
                     ? AppColors.buttonPrimary
                     : const Color(0x1E767680), // Fills-Tertiary style

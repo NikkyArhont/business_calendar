@@ -5,13 +5,16 @@ import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/config/constants/app_strings.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
 import 'package:business_calendar/shared/widgets/app_primary_button.dart';
+import 'package:business_calendar/core/services/auth_service.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String phoneNumber;
+  final String verificationId;
 
   const OtpVerificationPage({
     super.key,
     required this.phoneNumber,
+    required this.verificationId,
   });
 
   @override
@@ -21,11 +24,13 @@ class OtpVerificationPage extends StatefulWidget {
 class _OtpVerificationPageState extends State<OtpVerificationPage> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final _authService = AuthService();
   
   int _timerSeconds = 60;
   Timer? _timer;
   bool _canResend = false;
   bool _isComplete = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -81,9 +86,37 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     });
   }
 
-  void _onNext() {
-    if (mounted) {
-      Navigator.pushNamed(context, AppRoutes.register);
+  Future<void> _onNext() async {
+    if (_isLoading) return;
+
+    final code = _controllers.map((c) => c.text).join();
+    setState(() => _isLoading = true);
+
+    try {
+      final credential = await _authService.signInWithCode(
+        verificationId: widget.verificationId,
+        smsCode: code,
+      );
+
+      if (credential != null && mounted) {
+        final isComplete = await _authService.isProfileComplete();
+        setState(() => _isLoading = false);
+        
+        if (isComplete) {
+          Navigator.pushNamedAndRemoveUntil(
+            context, 
+            AppRoutes.calendar, 
+            (route) => false,
+          );
+        } else {
+          Navigator.pushNamed(context, AppRoutes.register);
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Неверный код. Попробуйте еще раз.')),
+      );
     }
   }
 
@@ -194,6 +227,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               // Кнопка Далее
               AppPrimaryButton(
                 text: 'Далее',
+                isLoading: _isLoading,
                 backgroundColor: _isComplete 
                     ? AppColors.buttonPrimary 
                     : const Color(0x1E767680),

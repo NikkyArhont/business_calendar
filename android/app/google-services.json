@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "596943413242",
+    "project_id": "businesscalendar-c34a2",
+    "storage_bucket": "businesscalendar-c34a2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:596943413242:android:d3b0663b9016cb448b4e43",
+        "android_client_info": {
+          "package_name": "com.example.business_calendar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2sjJz-kIwUHa1624TX2SlnRc4p_LxgD8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

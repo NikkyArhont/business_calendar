@@ -3,6 +3,7 @@ import '../../../config/constants/app_routes.dart';
 import '../../../config/constants/app_colors.dart';
 import '../../../config/constants/app_strings.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/services/auth_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -12,6 +13,8 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  final _authService = AuthService();
+
   @override
   void initState() {
     super.initState();
@@ -27,7 +30,18 @@ class _SplashPageState extends State<SplashPage> {
       if (isFirstTime) {
         Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
       } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.auth);
+        // Проверяем авторизацию
+        final user = _authService.currentUser;
+        if (user != null) {
+          final isProfileComplete = await _authService.isProfileComplete();
+          if (isProfileComplete) {
+            Navigator.pushReplacementNamed(context, AppRoutes.calendar);
+          } else {
+            Navigator.pushReplacementNamed(context, AppRoutes.register);
+          }
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.auth);
+        }
       }
     }
   }
