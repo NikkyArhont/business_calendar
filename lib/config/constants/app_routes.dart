@@ -16,4 +16,5 @@ class AppRoutes {
   static const String subscription = '/subscription';
   static const String addContact = '/add-contact';
   static const String addEvent = '/add-event';
+  static const String selectContacts = '/select-contacts';
 }

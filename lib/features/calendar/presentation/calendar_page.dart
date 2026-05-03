@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
+import 'package:intl/intl.dart';
+import 'package:business_calendar/core/services/firestore_service.dart';
+import 'package:business_calendar/core/models/calendar_event.dart';
+import 'package:business_calendar/features/calendar/presentation/event_detail_page.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -14,6 +18,8 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _selectedDay = DateTime.now();
   bool _isMonthView = true;
   bool _isMonthPickerVisible = false;
+  final _firestoreService = FirestoreService();
+  List<CalendarEvent> _events = [];
 
   final List<String> _months = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -29,6 +35,22 @@ class _CalendarPageState extends State<CalendarPage> {
   int _firstDayOffset(DateTime date) {
     final firstDay = DateTime(date.year, date.month, 1);
     return firstDay.weekday - 1;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _listenToEvents();
+  }
+
+  void _listenToEvents() {
+    _firestoreService.getEvents().listen((events) {
+      if (mounted) {
+        setState(() {
+          _events = events;
+        });
+      }
+    });
   }
 
   @override
@@ -55,12 +77,9 @@ class _CalendarPageState extends State<CalendarPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Container(
-                        height: _isMonthView ? 380 : 140, // Динамическая высота
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: _isMonthView ? _buildCalendarGrid() : _buildWeekView(),
+                        child: _isMonthView 
+                          ? _buildCalendarGrid() 
+                          : _buildWeekView(),
                       ),
                     ),
                     
@@ -510,11 +529,12 @@ class _CalendarPageState extends State<CalendarPage> {
     final int daysInPrevMonth = _daysInMonth(prevMonth);
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisExtent: 58,
+        mainAxisExtent: 110,
       ),
       itemCount: 42,
       itemBuilder: (context, index) {
@@ -556,53 +576,106 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildCalendarCell(int day, bool isCurrentMonth, bool isSelected, bool isToday, int index) {
+    final DateTime cellDate = isCurrentMonth 
+        ? DateTime(_focusedDay.year, _focusedDay.month, day)
+        : (index < 7 // Simple logic for neighbor months
+            ? DateTime(_focusedDay.year, _focusedDay.month - 1, day)
+            : DateTime(_focusedDay.year, _focusedDay.month + 1, day));
+
+    final dayEvents = _events.where((e) => 
+      e.startTime.year == cellDate.year && 
+      e.startTime.month == cellDate.month && 
+      e.startTime.day == cellDate.day
+    ).toList();
+
     final Color textColor = isSelected 
         ? Colors.white 
         : (isCurrentMonth 
-            ? (isToday ? AppColors.logoGradientEnd : Colors.black) 
+            ? (isToday ? const Color(0xFFFA4E02) : Colors.black) 
             : const Color(0x2D3C3C43));
-
-    // Определяем, нужно ли рисовать нижнюю границу (не рисуем для последнего ряда, т.е. индексы 35-41)
-    final bool showBottomBorder = index < 35;
 
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: showBottomBorder 
-              ? const BorderSide(color: Color(0xFFC7C7CC), width: 0.33) 
-              : BorderSide.none,
-          // Удалили right border (вертикальные линии)
+          bottom: const BorderSide(color: Color(0xFFC7C7CC), width: 0.33),
         ),
       ),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: isSelected 
-                ? Container(
+          // Число
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 8,
+            child: isSelected 
+              ? Center(
+                  child: Container(
                     width: 32,
                     height: 32,
                     decoration: const BoxDecoration(
-                      color: AppColors.logoGradientEnd,
+                      color: Color(0xFFFA4E02),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
                       child: Text(
                         '$day',
+                        textAlign: TextAlign.center,
                         style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w400),
                       ),
                     ),
-                  )
-                : Text(
-                    '$day',
-                    style: TextStyle(
-                      color: textColor, 
-                      fontSize: 18, 
-                      fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                )
+              : Text(
+                  '$day',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: textColor, 
+                    fontSize: 18, 
+                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
+          ),
+          
+          // События
+          Positioned(
+            left: 2,
+            right: 2,
+            top: 44,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: dayEvents.take(2).map((event) {
+                final isContactEvent = event.selectedContacts.isNotEmpty;
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: ShapeDecoration(
+                    color: isContactEvent ? const Color(0x0F0088FF) : const Color(0x0F6155F5),
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        width: 1,
+                        color: isContactEvent ? const Color(0xFF0088FF) : const Color(0xFF6155F5),
+                      ),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
+                  child: Text(
+                    isContactEvent 
+                      ? (event.selectedContacts.first['name'] ?? 'Контакт')
+                      : event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isContactEvent ? const Color(0xFF0088FF) : const Color(0xFF6155F5),
+                      fontSize: 8,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.03,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -613,6 +686,12 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget _buildDayDetailCard() {
     final weekDays = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
     final weekDayName = weekDays[_selectedDay.weekday - 1];
+    
+    final dayEvents = _events.where((e) => 
+      e.startTime.year == _selectedDay.year && 
+      e.startTime.month == _selectedDay.month && 
+      e.startTime.day == _selectedDay.day
+    ).toList();
 
     return Column(
       children: [
@@ -624,72 +703,146 @@ class _CalendarPageState extends State<CalendarPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            shadows: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${_selectedDay.day}, $weekDayName',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w600,
-                                height: 1.50,
-                              ),
-                            ),
-                          ],
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${_selectedDay.day}, $weekDayName',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          height: 1.50,
                         ),
                       ),
-                      const SizedBox(width: 16), // Замена spacing
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: ShapeDecoration(
-                          color: const Color(0x0FFA4E02),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          '0 событий',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xFFFA4E02),
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w600, // Сделал 600 для четкости
-                            height: 1.33,
-                          ),
+                    ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: ShapeDecoration(
+                        color: const Color(0x0FFA4E02),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                    ],
-                  ),
+                      child: Text(
+                        '${dayEvents.length} ${_getEventWord(dayEvents.length)}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFFFA4E02),
+                          fontSize: 12,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          height: 1.33,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              
+              if (dayEvents.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'Событий нет',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+
+              // Events List
+              ...dayEvents.map((event) => _buildEventItem(event)),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  String _getEventWord(int count) {
+    if (count % 10 == 1 && count % 100 != 11) return 'событие';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'события';
+    return 'событий';
+  }
+
+  Widget _buildEventItem(CalendarEvent event) {
+    final isContactEvent = event.selectedContacts.isNotEmpty;
+    final color = isContactEvent ? const Color(0xFF0088FF) : const Color(0xFF6155F5);
+    final timeRange = '${DateFormat('HH:mm').format(event.startTime)} - ${DateFormat('HH:mm').format(event.endTime)}';
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventDetailPage(event: event),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: Colors.transparent, // Make it tappable everywhere
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      height: 1.38,
+                      letterSpacing: -0.43,
+                    ),
+                  ),
+                  Text(
+                    isContactEvent 
+                      ? (event.selectedContacts.map((c) => c['name']).join(', '))
+                      : (event.type ?? 'Без категории'),
+                    style: const TextStyle(
+                      color: Color(0x993C3C43),
+                      fontSize: 14,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                      height: 1.43,
+                      letterSpacing: -0.23,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              timeRange,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                height: 1.69,
+                letterSpacing: -0.43,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

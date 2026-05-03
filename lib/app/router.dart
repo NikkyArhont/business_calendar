@@ -17,6 +17,7 @@ import '../features/auth/presentation/otp_verification_page.dart';
 import 'package:business_calendar/features/home/presentation/main_navigation_screen.dart';
 import 'package:business_calendar/features/contacts/presentation/add_contact_page.dart';
 import 'package:business_calendar/features/calendar/presentation/add_event_page.dart';
+import 'package:business_calendar/features/contacts/presentation/contact_selection_page.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -68,6 +69,13 @@ class AppRouter {
         return MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => const AddEventPage(),
+        );
+      case AppRoutes.selectContacts:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final initialSelectedIds = args?['initialSelectedIds'] as List<String>? ?? [];
+        return MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ContactSelectionPage(initialSelectedIds: initialSelectedIds),
         );
       default:
         return MaterialPageRoute(

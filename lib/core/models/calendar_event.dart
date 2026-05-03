@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 class CalendarEvent {
   final String id;
   final String title;
-  final String? contactName;
-  final String? contactId;
+  final List<Map<String, dynamic>> selectedContacts;
   final DateTime startTime;
   final DateTime endTime;
   final bool isAllDay;
@@ -20,8 +19,7 @@ class CalendarEvent {
   CalendarEvent({
     required this.id,
     required this.title,
-    this.contactName,
-    this.contactId,
+    this.selectedContacts = const [],
     required this.startTime,
     required this.endTime,
     this.isAllDay = false,
@@ -39,8 +37,7 @@ class CalendarEvent {
     return {
       'id': id,
       'title': title,
-      'contactName': contactName,
-      'contactId': contactId,
+      'selectedContacts': selectedContacts,
       'startTime': startTime.toIso8601String(),
       'endTime': endTime.toIso8601String(),
       'isAllDay': isAllDay,
@@ -59,8 +56,7 @@ class CalendarEvent {
     return CalendarEvent(
       id: documentId,
       title: map['title'] ?? '',
-      contactName: map['contactName'],
-      contactId: map['contactId'],
+      selectedContacts: List<Map<String, dynamic>>.from(map['selectedContacts'] ?? []),
       startTime: DateTime.parse(map['startTime']),
       endTime: DateTime.parse(map['endTime']),
       isAllDay: map['isAllDay'] ?? false,
