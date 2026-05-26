@@ -11,6 +11,11 @@ import '../features/profile/presentation/profile_page.dart';
 import '../features/contacts/presentation/contact_list_page.dart';
 import '../features/contacts/presentation/contact_detail_page.dart';
 import '../features/assistants/presentation/assistants_page.dart';
+import '../features/assistants/presentation/add_assistant_page.dart';
+import '../features/assistants/presentation/qr_share_page.dart';
+import '../features/analytics/presentation/tag_selection_page.dart';
+import '../features/analytics/presentation/edit_tags_page.dart';
+import '../features/analytics/presentation/analytics_results_page.dart';
 import '../features/subscription/presentation/subscription_page.dart';
 import '../features/auth/presentation/phone_auth_page.dart';
 import '../features/auth/presentation/otp_verification_page.dart';
@@ -44,6 +49,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case AppRoutes.register:
         return MaterialPageRoute(builder: (_) => const RegisterPage());
+      case AppRoutes.main:
+        return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
       case AppRoutes.calendar:
         return MaterialPageRoute(builder: (_) => const MainNavigationScreen());
       case AppRoutes.notes:
@@ -55,9 +62,42 @@ class AppRouter {
       case AppRoutes.contacts:
         return MaterialPageRoute(builder: (_) => const ContactListPage());
       case AppRoutes.contactDetail:
-        return MaterialPageRoute(builder: (_) => const ContactDetailPage());
+        final args = settings.arguments as Map<String, dynamic>?;
+        final contactId = args?['contactId'] as String? ?? '';
+        return MaterialPageRoute(builder: (_) => ContactDetailPage(contactId: contactId));
       case AppRoutes.assistants:
         return MaterialPageRoute(builder: (_) => const AssistantsPage());
+      case AppRoutes.addAssistant:
+        return MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const AddAssistantPage(),
+        );
+      case AppRoutes.qrShare:
+        return MaterialPageRoute(builder: (_) => const QrSharePage());
+      case AppRoutes.tagSelection:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => TagSelectionPage(
+            title: args['title'] as String,
+            initialSelectedTags: args['initialSelectedTags'] as List<String>,
+            availableTags: args['availableTags'] as List<String>,
+          ),
+        );
+      case AppRoutes.editTags:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => EditTagsPage(
+            title: args['title'] as String,
+            availableTags: args['availableTags'] as List<String>,
+          ),
+        );
+      case AppRoutes.analyticsResults:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => AnalyticsResultsPage(
+            filters: args['filters'] as Map<String, dynamic>,
+          ),
+        );
       case AppRoutes.subscription:
         return MaterialPageRoute(builder: (_) => const SubscriptionPage());
       case AppRoutes.addContact:

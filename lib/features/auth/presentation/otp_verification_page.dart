@@ -5,6 +5,7 @@ import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/config/constants/app_strings.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
 import 'package:business_calendar/shared/widgets/app_primary_button.dart';
+import 'package:business_calendar/shared/widgets/responsive_auth_layout.dart';
 import 'package:business_calendar/core/services/auth_service.dart';
 
 class OtpVerificationPage extends StatefulWidget {
@@ -130,114 +131,123 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.splashBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              // Иконка
-              Image.asset(
-                'assets/sms-tracking.png',
-                width: 80,
-                height: 80,
-                errorBuilder: (context, error, stackTrace) => const Icon(
-                  Icons.sms_outlined,
-                  size: 80,
-                  color: AppColors.logoGradientEnd,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Заголовок
-              const Text(
-                AppStrings.otpTitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.logoGradientEnd,
-                  fontSize: 24,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${AppStrings.otpSubtitle} ${widget.phoneNumber}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 32),
-              
-              // Поля ввода кода
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (index) => _buildOtpBox(index)),
-              ),
-              
-              const Spacer(),
-              
-              // Повторная отправка
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: ResponsiveAuthLayout(
+        showBackButton: true,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              child: Column(
                 children: [
-                  TextButton(
-                    onPressed: _canResend ? _startTimer : null,
-                    child: Text(
-                      AppStrings.otpResend,
-                      style: TextStyle(
-                        color: _canResend ? AppColors.logoGradientEnd : AppColors.textSecondary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 20),
+                  // Иконка
+                  if (MediaQuery.of(context).size.width <= 800) ...[
+                    Image.asset(
+                      'assets/sms-tracking.png',
+                      width: 80,
+                      height: 80,
+                      errorBuilder: (context, error, stackTrace) => const Icon(
+                        Icons.sms_outlined,
+                        size: 80,
+                        color: AppColors.logoGradientEnd,
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  // Заголовок
+                  const Text(
+                    AppStrings.otpTitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.logoGradientEnd,
+                      fontSize: 24,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (!_canResend)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _formatTimer(),
-                        style: const TextStyle(
-                          color: AppColors.logoGradientEnd,
-                          fontSize: 16,
-                          fontFamily: 'Roboto',
+                  const SizedBox(height: 8),
+                  Text(
+                    '${AppStrings.otpSubtitle} ${widget.phoneNumber}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Поля ввода кода
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) => _buildOtpBox(index)),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Повторная отправка
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed: _canResend ? _startTimer : null,
+                        style: TextButton.styleFrom(
+                          backgroundColor: _canResend ? Colors.white : Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        child: Text(
+                          AppStrings.otpResend,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _canResend ? AppColors.logoGradientEnd : AppColors.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
+                      if (!_canResend)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _formatTimer(),
+                            style: const TextStyle(
+                              color: AppColors.logoGradientEnd,
+                              fontSize: 16,
+                              fontFamily: 'Roboto',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Кнопка Далее
+                  AppPrimaryButton(
+                    text: 'Далее',
+                    isLoading: _isLoading,
+                    backgroundColor: _isComplete 
+                        ? AppColors.buttonPrimary 
+                        : const Color(0x1E767680),
+                    textColor: _isComplete 
+                        ? Colors.white 
+                        : const Color(0x4C3C3C43),
+                    onPressed: _isComplete ? _onNext : () {},
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
-              const SizedBox(height: 24),
-              
-              // Кнопка Далее
-              AppPrimaryButton(
-                text: 'Далее',
-                isLoading: _isLoading,
-                backgroundColor: _isComplete 
-                    ? AppColors.buttonPrimary 
-                    : const Color(0x1E767680),
-                textColor: _isComplete 
-                    ? Colors.white 
-                    : const Color(0x4C3C3C43),
-                onPressed: _isComplete ? _onNext : () {},
-              ),
-              const SizedBox(height: 32),
-            ],
+            ),
           ),
         ),
       ),

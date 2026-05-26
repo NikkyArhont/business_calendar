@@ -15,6 +15,7 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
   final _authService = AuthService();
   bool _isNameFilled = false;
   bool _isLoading = false;
@@ -26,6 +27,9 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         _isNameFilled = _nameController.text.trim().isNotEmpty;
       });
+    });
+    _nameFocusNode.addListener(() {
+      setState(() {});
     });
   }
 
@@ -109,11 +113,11 @@ class _RegisterPageState extends State<RegisterPage> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.camera_alt,
-                          size: 48,
-                          color: Color(0xFFC7C7CC),
+                      child: Center(
+                        child: Image.asset(
+                          'assets/Preset.png',
+                          width: 48,
+                          height: 48,
                         ),
                       ),
                     ),
@@ -151,16 +155,17 @@ class _RegisterPageState extends State<RegisterPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       AppStrings.registerNameLabel,
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: _nameFocusNode.hasFocus ? AppColors.logoGradientEnd : AppColors.textSecondary,
                         fontSize: 12,
                         fontFamily: 'Inter',
                       ),
                     ),
                     TextField(
                       controller: _nameController,
+                      focusNode: _nameFocusNode,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
@@ -200,6 +205,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    _nameFocusNode.dispose();
     _nameController.dispose();
     super.dispose();
   }

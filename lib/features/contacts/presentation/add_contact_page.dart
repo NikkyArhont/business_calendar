@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:business_calendar/core/services/firestore_service.dart';
 
 class AddContactPage extends StatefulWidget {
-  const AddContactPage({super.key});
+  final String? contactId;
+  final Map<String, dynamic>? initialData;
+
+  const AddContactPage({
+    super.key,
+    this.contactId,
+    this.initialData,
+  });
 
   @override
   State<AddContactPage> createState() => _AddContactPageState();
@@ -45,6 +53,49 @@ class _AddContactPageState extends State<AddContactPage> {
   // Адрес и Описание
   final _addressController = TextEditingController();
   final _descriptionController = TextEditingController();
+
+  final _phoneMaskFormatter = MaskTextInputFormatter(
+    mask: '+#(###)###-##-##',
+    filter: {"#": RegExp(r'[0-9]')},
+    type: MaskAutoCompletionType.lazy,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      final data = widget.initialData!;
+      _firstNameController.text = data['firstName'] ?? '';
+      _lastNameController.text = data['lastName'] ?? '';
+      _middleNameController.text = data['middleName'] ?? '';
+      _birthdayController.text = data['birthday'] ?? '';
+      _selectedGender = data['gender'];
+      
+      final phones = data['phones'] as List<dynamic>? ?? [];
+      if (phones.isNotEmpty) {
+        _phoneControllers.clear();
+        for (var phone in phones) {
+          _phoneControllers.add(TextEditingController(text: phone.toString()));
+        }
+      }
+      
+      _emailController.text = data['email'] ?? '';
+      _jobPlaceController.text = data['jobPlace'] ?? '';
+      _departmentController.text = data['department'] ?? '';
+      _professionController.text = data['profession'] ?? '';
+      _statusController.text = data['status'] ?? '';
+      _sourceController.text = data['source'] ?? '';
+      
+      final trusted = data['trustedPerson'] as Map<String, dynamic>?;
+      if (trusted != null) {
+        _trustedNameController.text = trusted['name'] ?? '';
+        _trustedPhoneController.text = trusted['phone'] ?? '';
+      }
+      
+      _addressController.text = data['address'] ?? '';
+      _descriptionController.text = data['description'] ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -110,7 +161,11 @@ class _AddContactPageState extends State<AddContactPage> {
         'description': _descriptionController.text.trim(),
       };
 
-      await _firestoreService.addContact(contactData);
+      if (widget.contactId != null) {
+        await _firestoreService.updateContact(widget.contactId!, contactData);
+      } else {
+        await _firestoreService.addContact(contactData);
+      }
       
       if (mounted) {
         Navigator.pop(context);
@@ -207,6 +262,7 @@ class _AddContactPageState extends State<AddContactPage> {
                             controller: entry.value,
                             hint: 'Номер телефона',
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [_phoneMaskFormatter],
                           ),
                           if (entry.key < _phoneControllers.length - 1) _buildDivider(),
                         ],
@@ -271,6 +327,7 @@ class _AddContactPageState extends State<AddContactPage> {
                       hint: 'Номер телефона', 
                       controller: _trustedPhoneController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [_phoneMaskFormatter],
                     ),
                   ],
                 ),
@@ -285,9 +342,9 @@ class _AddContactPageState extends State<AddContactPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Описание
+                // Заметки
                 _buildSection(
-                  title: 'Описание',
+                  title: 'Заметки',
                   children: [
                     _buildTextField(
                       controller: _descriptionController,

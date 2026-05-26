@@ -4,6 +4,7 @@ import 'package:business_calendar/features/contacts/presentation/contact_list_pa
 import 'package:business_calendar/features/analytics/presentation/analytics_page.dart';
 import 'package:business_calendar/features/profile/presentation/profile_page.dart';
 import 'package:business_calendar/shared/widgets/app_bottom_nav.dart';
+import 'package:business_calendar/shared/widgets/sidebar_navigation.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -24,19 +25,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWeb = constraints.maxWidth > 800;
+
+        if (isWeb) {
+          // Web/Desktop layout: боковая панель + контент
+          return Scaffold(
+            body: Row(
+              children: [
+                SidebarNavigation(
+                  currentIndex: _currentIndex,
+                  onTap: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: _pages,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Mobile layout: контент + нижняя панель
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          bottomNavigationBar: AppBottomNav(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+          ),
+        );
+      },
     );
   }
 }

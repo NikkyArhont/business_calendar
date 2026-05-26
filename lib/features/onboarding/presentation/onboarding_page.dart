@@ -3,6 +3,7 @@ import '../../../config/constants/app_routes.dart';
 import '../../../config/constants/app_colors.dart';
 import '../../../config/constants/app_strings.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_primary_button.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -43,20 +44,37 @@ class _OnboardingPageState extends State<OnboardingPage> {
     } else {
       await StorageService.setFirstTime(false);
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.auth);
+        final authService = AuthService();
+        final user = authService.currentUser;
+        if (user != null) {
+          final isProfileComplete = await authService.isProfileComplete();
+          if (mounted) {
+            if (isProfileComplete) {
+              Navigator.pushReplacementNamed(context, AppRoutes.calendar);
+            } else {
+              Navigator.pushReplacementNamed(context, AppRoutes.register);
+            }
+          }
+        } else {
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, AppRoutes.auth);
+          }
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.splashBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: AppColors.splashBackground,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
                 controller: _pageController,
                 itemCount: _screens.length,
                 onPageChanged: (index) {
@@ -68,12 +86,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
                   AppPrimaryButton(
-                    text: _currentPage == _screens.length - 1 ? 'Начать' : 'Далее',
+                    text: 'Далее',
                     onPressed: _onNext,
                   ),
                 ],
@@ -82,18 +99,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildIndicator(int index) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: 8,
-      width: _currentPage == index ? 24 : 8,
-      decoration: BoxDecoration(
-        color: _currentPage == index ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
@@ -122,13 +127,13 @@ class OnboardingSlide extends StatelessWidget {
       children: [
         // Изображение растягивается по ширине
         Expanded(
-          flex: 4,
+          flex: 6,
           child: SizedBox(
             width: double.infinity,
             child: Image.asset(
               data.image,
               fit: BoxFit.fitWidth,
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.center,
               errorBuilder: (context, error, stackTrace) => const Center(
                 child: Icon(
                   Icons.image_outlined,
@@ -139,12 +144,13 @@ class OnboardingSlide extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 16),
         // Контент (заголовок и описание)
         Expanded(
-          flex: 3,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          flex: 2,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
                 Text(
@@ -169,6 +175,7 @@ class OnboardingSlide extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ],

@@ -9,9 +9,12 @@ import 'package:business_calendar/config/constants/app_colors.dart';
 import 'package:business_calendar/core/services/firestore_service.dart';
 import 'package:business_calendar/core/models/calendar_event.dart';
 import 'package:business_calendar/config/constants/app_routes.dart';
+import 'package:business_calendar/features/contacts/presentation/contact_selection_page.dart';
+import 'package:business_calendar/features/contacts/presentation/add_contact_page.dart';
 
 class AddEventPage extends StatefulWidget {
-  const AddEventPage({super.key});
+  final CalendarEvent? eventToEdit;
+  const AddEventPage({super.key, this.eventToEdit});
 
   @override
   State<AddEventPage> createState() => _AddEventPageState();
@@ -21,11 +24,13 @@ class _AddEventPageState extends State<AddEventPage> {
   final _firestoreService = FirestoreService();
   final _contactController = TextEditingController();
   final _titleController = TextEditingController();
+  final _titleFocusNode = FocusNode();
   final _quillController = quill.QuillController.basic();
   final List<Map<String, dynamic>> _selectedContacts = [];
   final List<PlatformFile> _attachedFiles = [];
   List<Map<String, dynamic>> _allContacts = [];
   List<Map<String, dynamic>> _searchResults = [];
+  List<String> _recentTitles = [];
   bool _isSearching = false;
   bool _isLoading = false;
 
@@ -48,16 +53,71 @@ class _AddEventPageState extends State<AddEventPage> {
   void initState() {
     super.initState();
     _loadContacts();
+    _loadRecentTitles();
     _contactController.addListener(_onSearchChanged);
     _titleController.addListener(() => setState(() {}));
+    _titleFocusNode.addListener(() => setState(() {}));
+
+    if (widget.eventToEdit != null) {
+      final e = widget.eventToEdit!;
+      _titleController.text = e.title;
+      _selectedContacts.addAll(e.selectedContacts);
+      _startDate = e.startTime;
+      _endDate = e.endTime;
+      _isAllDay = e.isAllDay;
+      _selectedRepeat = e.repeat;
+      if (e.type != null) _selectedType = e.type!;
+      if (e.colorValue != null) _selectedColor = Color(e.colorValue!);
+      _painTags.addAll(e.clientPainPoints);
+      _solutionTags.addAll(e.solutions);
+      
+      if (e.note != null && e.note!.isNotEmpty) {
+        try {
+          final json = jsonDecode(e.note!);
+          if (json is List) {
+            _quillController.document = quill.Document.fromJson(json);
+          } else {
+             _quillController.document = quill.Document()..insert(0, e.note!);
+          }
+        } catch (_) {
+          _quillController.document = quill.Document()..insert(0, e.note!);
+        }
+      }
+      
+      for (final url in e.fileUrls) {
+        _attachedFiles.add(PlatformFile(name: url, size: 0));
+      }
+    }
   }
 
   @override
   void dispose() {
     _contactController.dispose();
     _titleController.dispose();
+    _titleFocusNode.dispose();
     _quillController.dispose();
     super.dispose();
+  }
+
+  void _loadRecentTitles() {
+    _firestoreService.getEvents().first.then((events) {
+      if (mounted) {
+        // Sort by createdAt descending
+        events.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        final uniqueTitles = <String>{};
+        for (final e in events) {
+          if (e.title.trim().isNotEmpty) {
+            uniqueTitles.add(e.title.trim());
+          }
+          if (uniqueTitles.length >= 3) break;
+        }
+        
+        setState(() {
+          _recentTitles = uniqueTitles.toList();
+        });
+      }
+    }).catchError((_) {});
   }
 
   void _loadContacts() {
@@ -74,7 +134,7 @@ class _AddEventPageState extends State<AddEventPage> {
     setState(() => _isLoading = true);
     try {
       final event = CalendarEvent(
-        id: '', // Firestore will generate ID
+        id: widget.eventToEdit?.id ?? '', // Firestore will generate ID if empty
         title: _titleController.text.trim(),
         selectedContacts: _selectedContacts,
         startTime: _startDate,
@@ -87,10 +147,14 @@ class _AddEventPageState extends State<AddEventPage> {
         solutions: _solutionTags,
         note: jsonEncode(_quillController.document.toDelta().toJson()),
         fileUrls: _attachedFiles.map((f) => f.name).toList(), // Using names as placeholders
-        createdAt: DateTime.now(),
+        createdAt: widget.eventToEdit?.createdAt ?? DateTime.now(),
       );
 
-      await _firestoreService.addEvent(event);
+      if (widget.eventToEdit != null) {
+        await _firestoreService.updateEvent(event.id, event);
+      } else {
+        await _firestoreService.addEvent(event);
+      }
       if (mounted) {
         Navigator.pop(context);
       }
@@ -290,15 +354,32 @@ class _AddEventPageState extends State<AddEventPage> {
                             ),
                             InkWell(
                               onTap: () async {
-                                final results = await Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.selectContacts,
-                                  arguments: {
-                                    'initialSelectedIds': _selectedContacts
-                                        .map((c) => c['id'] as String)
-                                        .toList()
-                                  },
-                                );
+                                final isWeb = MediaQuery.of(context).size.width > 800;
+                                final initialIds = _selectedContacts.map((c) => c['id'] as String).toList();
+                                
+                                dynamic results;
+                                if (isWeb) {
+                                  results = await showDialog(
+                                    context: context,
+                                    builder: (context) => Dialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: SizedBox(
+                                        width: 600,
+                                        height: 800,
+                                        child: ContactSelectionPage(initialSelectedIds: initialIds),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  results = await Navigator.pushNamed(
+                                    context,
+                                    AppRoutes.selectContacts,
+                                    arguments: {'initialSelectedIds': initialIds},
+                                  );
+                                }
                                 if (results != null && results is List<Map<String, dynamic>>) {
                                   setState(() {
                                     _selectedContacts.clear();
@@ -359,8 +440,26 @@ class _AddEventPageState extends State<AddEventPage> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: InkWell(
-                          onTap: () {
-                            Navigator.pushNamed(context, AppRoutes.addContact);
+                          onTap: () async {
+                            final isWeb = MediaQuery.of(context).size.width > 800;
+                            if (isWeb) {
+                              await showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: const SizedBox(
+                                    width: 600,
+                                    height: 800,
+                                    child: AddContactPage(),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              await Navigator.pushNamed(context, AppRoutes.addContact);
+                            }
                           },
                           child: _buildActionButton(
                             icon: Icons.add,
@@ -379,24 +478,56 @@ class _AddEventPageState extends State<AddEventPage> {
                 _buildSection(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: TextField(
-                      controller: _titleController,
-                      maxLength: 70,
-                      decoration: const InputDecoration(
-                        hintText: 'Краткое название события',
-                        hintStyle: TextStyle(
-                          color: Color(0xFF8E8E93),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _titleController,
+                          focusNode: _titleFocusNode,
+                          maxLength: 70,
+                          decoration: const InputDecoration(
+                            hintText: 'Краткое название события',
+                            hintStyle: TextStyle(
+                              color: Color(0xFF8E8E93),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                        border: InputBorder.none,
-                        counterText: '',
-                      ),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
+                        if (_titleFocusNode.hasFocus && _recentTitles.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, bottom: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: _recentTitles.map((title) => ListTile(
+                                dense: true,
+                                title: Text(title, style: const TextStyle(fontSize: 14)),
+                                trailing: const Icon(Icons.history, size: 16, color: Colors.grey),
+                                onTap: () {
+                                  _titleController.text = title;
+                                  _titleFocusNode.unfocus();
+                                },
+                              )).toList(),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -1171,6 +1302,17 @@ class _AddEventPageState extends State<AddEventPage> {
     
     final offset = renderBox.localToGlobal(Offset.zero);
     final topPosition = offset.dy + renderBox.size.height;
+    double leftPosition = offset.dx + renderBox.size.width - 208;
+    
+    // Prevent overflow on the right side
+    if (leftPosition + 208 > MediaQuery.of(context).size.width) {
+      leftPosition = MediaQuery.of(context).size.width - 208 - 16;
+    }
+    
+    // Prevent overflow on the left side
+    if (leftPosition < 16) {
+      leftPosition = 16;
+    }
 
     showDialog(
       context: context,
@@ -1179,7 +1321,7 @@ class _AddEventPageState extends State<AddEventPage> {
         children: [
           Positioned(
             top: topPosition,
-            right: 16,
+            left: leftPosition,
             child: Material(
               color: Colors.transparent,
               child: Container(

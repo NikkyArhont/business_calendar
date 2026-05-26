@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../config/constants/app_routes.dart';
 import '../../../config/constants/app_colors.dart';
 import '../../../config/constants/app_strings.dart';
@@ -27,7 +28,7 @@ class _SplashPageState extends State<SplashPage> {
     
     if (mounted) {
       final isFirstTime = await StorageService.isFirstTime();
-      if (isFirstTime) {
+      if (isFirstTime && !kIsWeb) {
         Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
       } else {
         // Проверяем авторизацию

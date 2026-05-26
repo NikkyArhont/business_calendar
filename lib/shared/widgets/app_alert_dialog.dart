@@ -23,7 +23,7 @@ class AppAlertDialog extends StatelessWidget {
           width: 270,
           clipBehavior: Clip.antiAlias,
           decoration: ShapeDecoration(
-            color: const Color(0xFF383838),
+            color: const Color(0xF2F2F2F2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
@@ -33,22 +33,22 @@ class AppAlertDialog extends StatelessWidget {
             children: [
               // Текст сообщения
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 19, 16, 15),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
                 child: Text(
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontSize: 17,
-                    fontFamily: 'SF Pro',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
-                    height: 1.29,
-                    letterSpacing: -0.40,
+                    height: 1.3,
+                    letterSpacing: -0.4,
                   ),
                 ),
               ),
               // Разделитель горизонтальный
-              const Divider(height: 0.33, color: Color(0x5B3C3C43)),
+              const Divider(height: 0.5, color: Color(0x3D3C3C43)),
               // Кнопки
               IntrinsicHeight(
                 child: Row(
@@ -66,16 +66,15 @@ class AppAlertDialog extends StatelessWidget {
                             style: TextStyle(
                               color: Color(0xFF007AFF),
                               fontSize: 17,
-                              fontFamily: 'SF Pro',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w400,
-                              letterSpacing: -0.40,
                             ),
                           ),
                         ),
                       ),
                     ),
                     // Разделитель вертикальный
-                    const VerticalDivider(width: 0.33, color: Color(0x5B3C3C43)),
+                    const VerticalDivider(width: 0.5, color: Color(0x3D3C3C43)),
                     // Кнопка действия
                     Expanded(
                       child: InkWell(
@@ -90,11 +89,10 @@ class AppAlertDialog extends StatelessWidget {
                             actionTitle,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: isDestructive ? const Color(0xFFFF383C) : const Color(0xFF007AFF),
+                              color: isDestructive ? const Color(0xFFFF3B30) : const Color(0xFF007AFF),
                               fontSize: 17,
-                              fontFamily: 'SF Pro',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w600,
-                              letterSpacing: -0.40,
                             ),
                           ),
                         ),

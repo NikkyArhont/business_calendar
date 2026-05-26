@@ -45,26 +45,26 @@ class AppBottomNav extends StatelessWidget {
               children: [
                 _buildTabItem(
                   index: 0,
-                  icon: Icons.calendar_month,
-                  activeIcon: Icons.calendar_month,
+                  iconPath: 'assets/menu/calendar.png',
+                  activeIconPath: 'assets/menu/calendarOn.png',
                   label: 'Календарь',
                 ),
                 _buildTabItem(
                   index: 1,
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart,
+                  iconPath: 'assets/menu/anal.png',
+                  activeIconPath: 'assets/menu/analOn.png',
                   label: 'Аналитика',
                 ),
                 _buildTabItem(
                   index: 2,
-                  icon: Icons.people_outline,
-                  activeIcon: Icons.people,
+                  iconPath: 'assets/menu/cont.png',
+                  activeIconPath: 'assets/menu/contOn.png',
                   label: 'Контакты',
                 ),
                 _buildTabItem(
                   index: 3,
-                  icon: Icons.person_outline,
-                  activeIcon: Icons.person,
+                  iconPath: 'assets/menu/profile.png',
+                  activeIconPath: 'assets/menu/profileOn.png',
                   label: 'Профиль',
                 ),
               ],
@@ -91,8 +91,8 @@ class AppBottomNav extends StatelessWidget {
 
   Widget _buildTabItem({
     required int index,
-    required IconData icon,
-    required IconData activeIcon,
+    required String iconPath,
+    required String activeIconPath,
     required String label,
   }) {
     final bool isActive = currentIndex == index;
@@ -112,10 +112,10 @@ class AppBottomNav extends StatelessWidget {
               width: 56,
               height: 32,
               alignment: Alignment.center,
-              child: Icon(
-                isActive ? activeIcon : icon,
-                color: color,
-                size: 24,
+              child: Image.asset(
+                isActive ? activeIconPath : iconPath,
+                width: 24,
+                height: 24,
               ),
             ),
             const SizedBox(height: 4),
